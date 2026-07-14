@@ -228,6 +228,9 @@ This boots up:
 - **Backend API**: Hosted on **Railway** container service (resolving to internal network database links).
 - **Frontend Dashboard**: Hosted on **Vercel** with custom SPA routing rewrites to avoid subroute `404` pages.
 
+* Frontend Dashboard: https://deliverytracker.vercel.app
+* Backend Server: https://deliverytracker-production-507b.up.railway.app
+
 ---
 
 ## 📖 Swagger
