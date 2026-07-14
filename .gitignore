@@ -1,0 +1,27 @@
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Build Artifacts
+/deliverytracker/target/
+/frontend/dist/
+
+# Dependencies
+/frontend/node_modules/
+/deliverytracker/node_modules/
+
+# Local Configurations & Database Data
+.env
+postgres_data/
+
+# Logs
+*.log
+/deliverytracker/log/
+/deliverytracker/logs/

@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: deliverytracker
+
+  datasource:
+    url: jdbc:postgresql://${DT_DB_HOST:localhost}:${DT_DB_PORT:5435}/${DT_DB_NAME:delivery_tracker}
+    username: ${DT_DB_USERNAME:deliverytracker}
+    password: ${DT_DB_PASSWORD:deliverytracker_pass}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+
+  mail:
+    host: sandbox.smtp.mailtrap.io
+    port: 2525
+    username: cf10f7b98ddc26
+    password: 50b51d5069f071
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    root: INFO
+    com.lastmile.deliverytracker: DEBUG
+    org.hibernate.SQL: DEBUG
+
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_KEY:3cfa76f14193b259062142f38d4f04c632832598379412f12258529329432857}
+      expiration: ${JWT_EXPIRATION:86400000}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

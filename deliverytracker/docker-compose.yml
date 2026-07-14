@@ -1,0 +1,117 @@
+# =============================================================================
+# DeliveryTracker — Docker Compose
+#
+# Services:
+#   deliverytracker-db   PostgreSQL 16 with persistent volume & health check
+#   deliverytracker-app  Spring Boot fat JAR, waits for DB to be healthy
+#
+# Usage:
+#   docker compose up -d          # start all services in the background
+#   docker compose down           # stop and remove containers (volume preserved)
+#   docker compose down -v        # stop and remove containers + volume (data loss!)
+#   docker compose logs -f app    # tail application logs
+#   docker compose logs -f db     # tail database logs
+#   docker compose ps             # check running status and health
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: deliverytracker-db
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB:       ${DT_DB_NAME:-delivery_tracker}
+      POSTGRES_USER:     ${DT_DB_USERNAME:-deliverytracker}
+      POSTGRES_PASSWORD: ${DT_DB_PASSWORD:-deliverytracker_pass}
+
+    ports:
+      # Host port 5435 matches the default in application.yml (DT_DB_PORT:5435)
+      - "${DT_DB_PORT:-5435}:5432"
+
+    volumes:
+      # Named volume — data survives container restarts and image updates
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DT_DB_USERNAME:-deliverytracker} -d ${DT_DB_NAME:-delivery_tracker}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+    networks:
+      - deliverytracker-network
+
+  # ---------------------------------------------------------------------------
+  # Spring Boot Application
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deliverytracker-app
+    restart: unless-stopped
+
+    # The app only starts after the DB passes its health check
+    depends_on:
+      db:
+        condition: service_healthy
+
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+
+    environment:
+      # ── Database ────────────────────────────────────────────────
+      # DB_HOST uses the Compose service name so Docker's internal DNS resolves it
+      DT_DB_HOST:     db
+      DT_DB_PORT:     5432          # internal Postgres port (not the host-mapped one)
+      DT_DB_NAME:     ${DT_DB_NAME:-delivery_tracker}
+      DT_DB_USERNAME: ${DT_DB_USERNAME:-deliverytracker}
+      DT_DB_PASSWORD: ${DT_DB_PASSWORD:-deliverytracker_pass}
+
+      # ── Security ─────────────────────────────────────────────────
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-changeme_replace_in_production_with_256bit_key}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+
+      # ── Mail (optional — set in .env to enable) ──────────────────
+      MAIL_HOST:     ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT:     ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+
+      # ── Server ───────────────────────────────────────────────────
+      SERVER_PORT:   8080
+
+      # ── Spring profile ────────────────────────────────────────────
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    networks:
+      - deliverytracker-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    name: deliverytracker_postgres_data
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  deliverytracker-network:
+    name: deliverytracker-network
+    driver: bridge
